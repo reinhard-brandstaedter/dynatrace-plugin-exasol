@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: EXASOL-DB-API
+Version: 6.0.0
+Summary: EXASOL Python DB API v2.0 compatible native driver
+Home-page: https://github.com/EXASOL/websocket-api
+Maintainer: Oleksandr Kozachuk
+Maintainer-email: support@exasol.com
+License: MIT
+Platform: UNKNOWN
+Requires-Dist: websocket-client
+Requires-Dist: rsa
+
+EXASOL Python DB API v2.0 compatible native driver based ond Websockets API for communication and JSON for serialization.
+
+
