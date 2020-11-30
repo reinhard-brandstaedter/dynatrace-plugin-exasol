@@ -51,29 +51,32 @@ class ExasolPluginRemote(RemoteBasePlugin):
         device = group.create_device(device_name, device_name)
         device.add_endpoint(ip=self.ip, port=self.port, dnsNames=[self.host])
         logger.info("Topology: group name={}, device name={}".format(group.name, device.name))
-        db = Database(self.connectionstring, self.username, self.password, autocommit=True)
+        try:
+            db = Database(self.connectionstring, self.username, self.password, autocommit=True)
 
-        ### get properties
-        self.getProperties(db,device)
+            ### get properties
+            self.getProperties(db,device)
 
-        ### get system stats
-        self.getSysStats(db,device)
-        self.getNodeStats(db,device)
+            ### get system stats
+            self.getSysStats(db,device)
+            self.getNodeStats(db,device)
 
-        ### get usage stats - users and queries
-        self.getUsage(db,device)
+            ### get usage stats - users and queries
+            self.getUsage(db,device)
 
-        ### get dbsizes
-        self.getDBSizes(db,device)
+            ### get dbsizes
+            self.getDBSizes(db,device)
 
-        ### get recent events
-        self.getRecentEvents(db,device)
-        
-        ### get SQL execution stats
-        self.getSQLStats(db,device)
+            ### get recent events
+            self.getRecentEvents(db,device)
+            
+            ### get SQL execution stats
+            self.getSQLStats(db,device)
 
-        ### finalize, close connection
-        db.close()
+            ### finalize, close connection
+            db.close()
+        except:
+            logger.error("Database offline, unreachable or wrong connection string: {}:{}".format(self.ip, self.port))
 
     def reportAbsolute(self,device,metrics):
         for measurement in metrics:
