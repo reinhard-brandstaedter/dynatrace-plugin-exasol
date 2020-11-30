@@ -1,4 +1,4 @@
-# A Remote Plugin to Monitor Exasol Databases
+# A Dynatrace Remote Plugin to Monitor Exasol Databases
 This is a Active Gate remote plugin that allows the monitoring of the [Exasol Analytics Database](https://www.exasol.com/). It solely uses the statistics and metadata tables provided by Exasol to gather information.
 
 ## Dependencies
@@ -12,11 +12,27 @@ Also included is a scraping of the events table so that Dynatrace can process in
 
 The availability is also reported based on the successful connection from the AG to the database.
 
+### Installation
+Please follow the standard pocess to deploy Active Gate remote plugins as described [here](https://www.dynatrace.com/support/help/extend-dynatrace/extensions/activegate-extensions/write-your-first-activegate-plugin/) 
+
 ### Screenshots
 
-![availability](./images/availability.png =100x20)
-![availability](./images/sql_executions.png =100x20)
-![availability](./images/db_events.png =100x20)
-![availability](./images/db_sizes.png =100x20)
-![availability](./images/keycharts.png =100x20)
-![availability](./images/technology.png =100x20)
+After the plugin installation and configuration of your exasol database connection for the plugin you will find the Exasol extension in the Technology overview:
+![availability](./images/technology.png)
+
+The plugin will immediatley collect data about the instance:
+![availability](./images/keycharts.png)
+
+The availability is based on if a successful ODBC connection can be made or not:
+![availability](./images/availability.png)
+
+The plugin also gets information about traced DB events. Please note that this might not provide 100% accurate timing information as the plugin is only querying this every minute and is not considering events in the past. Therefore especially the SHUTDOWN or STARTUP events might be missed if the DB is shutdown and not reachable this event might not show up. Other events should all show fine.
+![availability](./images/db_events.png)
+
+Stats about the execution of different SQL statments are collected and split by statement type. The timing information on statements is also gathered from the statistics tables and might be differnt than any timings collected on PurePaths (on the client side).
+![availability](./images/sql_executions.png)
+
+These are the cluster level storage sizes of the DB.
+![availability](./images/db_sizes.png)
+
+
