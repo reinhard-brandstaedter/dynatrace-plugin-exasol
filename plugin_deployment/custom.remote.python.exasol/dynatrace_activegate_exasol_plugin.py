@@ -54,6 +54,8 @@ class ExasolPluginRemote(RemoteBasePlugin):
         try:
             db = Database(self.connectionstring, self.username, self.password, autocommit=True)
 
+            ### availability: if we can connect assume the DB is available
+            device.state_metric(key="state",value="AVAILABLE")
             ### get properties
             self.getProperties(db,device)
 
@@ -77,6 +79,9 @@ class ExasolPluginRemote(RemoteBasePlugin):
             db.close()
         except:
             logger.error("Database offline, unreachable or wrong connection string: {}:{}".format(self.ip, self.port))
+            device.state_metric(key="state",value="UNAVAILABLE")
+            device.report_availability_event(title="Unavailable",description="Database connection unsuccessful")
+
 
     def reportAbsolute(self,device,metrics):
         for measurement in metrics:

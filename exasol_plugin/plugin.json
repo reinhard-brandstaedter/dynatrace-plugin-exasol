@@ -1,7 +1,7 @@
 {
     "name": "custom.remote.python.exasol",
     "metricGroup": "tech.exasol",
-    "version": "1.2",
+    "version": "1.7",
     "experimentalMinVersion": "0.10",
     "productiveMinVersion": "0.10",
     "type": "python",
@@ -321,7 +321,15 @@
                     "CommandName"
                 ]
             }
-        }
+        },
+		{
+			"entity": "CUSTOM_DEVICE",
+			"statetimeseries": {
+				"key": "state",
+				"states": ["AVAILABLE", "UNAVAILABLE"],
+				"displayname": "State"
+			}
+		}
     ],
     "properties": [
         {
@@ -398,6 +406,18 @@
             }
         ],
         "keycharts":[
+            {
+                "group": "Availability",
+                "title": "Availability",
+                "series": [
+                {
+                    "key": "state",
+                    "displayname": "Status",
+                    "seriestype": "bar",
+                    "statecolors": ["#8EC255", "#C93234"],
+                    "statechart": true
+                }]
+            },
             {
                 "group": "System Resources",
                 "title": "CPU Utilization",
