@@ -1,7 +1,7 @@
 {
     "name": "custom.remote.python.exasol",
     "metricGroup": "tech.exasol",
-    "version": "1.7",
+    "version": "1.17",
     "experimentalMinVersion": "0.10",
     "productiveMinVersion": "0.10",
     "type": "python",
@@ -14,7 +14,7 @@
         "package": "dynatrace_activegate_exasol_plugin",
         "className": "ExasolPluginRemote",
         "install_requires": [
-            "ExasolDatabaseConnector>=0.1.7"
+            "pyodbc", "ExasolDatabaseConnector>=0.1.7"
         ],
         "activation": "Remote"
     },
@@ -201,6 +201,35 @@
                 "unit": "MegaByte",
                 "displayname": "Recommended DB RAM size"
             }
+        },
+        {
+            "entity": "CUSTOM_DEVICE",
+            "timeseries": {
+                "key": "dbsize.db_ram_size",
+                "unit": "MegaByte",
+                "displayname": "Licensed DB RAM size"
+            }
+        },
+        {
+            "entity": "CUSTOM_DEVICE",
+            "timeseries": {
+                "key": "dbsize.db_ramratio",
+                "unit": "Ratio",
+                "displayname": "Recommended vs. Licensed DB RAM Size"
+            },
+            "alert_settings": [
+                {
+                    "alert_id": "exasol_ram_size",
+                    "event_type": "PERFORMANCE_EVENT",
+                    "event_name": "Recommended vs. licensed RAM size ratio warning",
+                    "description": "The {metricname} is {alert_condition} the recommended threshold of {threshold}",
+                    "threshold": 2.0,
+                    "alert_condition": "ABOVE",
+                    "samples":10,
+                    "violating_samples":7,
+                    "dealerting_samples":7
+                }
+            ]
         },
         {
             "entity": "CUSTOM_DEVICE",
@@ -588,11 +617,11 @@
                 ]
             },
             {
-                "group": "Hard Disk IO",
+                "group": "System Resources",
                 "title": "Hard Disk",
                 "description": "Throughput",
                 "explanation": "Not used",
-                "link": "Hard Disk IO",
+                "link": "System Resources",
                 "series": [
                     {
                         "key": "hdd_read",
@@ -617,6 +646,48 @@
                         "stacked": false,
                         "unit": "MegaBytePerSecond",
                         "metricexplanation": "Not used"
+                    }
+                ]
+            },
+            {
+                "group": "Sizing",
+                "title": "Hard Disk",
+                "description": "Throughput",
+                "explanation": "Not used",
+                "link": "Sizing",
+                "series": [
+                    {
+                        "key": "dbsize.recommended_db_ram_size",
+                        "displayname": "Recommended DB RAM",
+                        "aggregation": "avg",
+                        "mergeaggregation": "avg",
+                        "color": "#00a6fb",
+                        "seriestype": "area",
+                        "rightaxis": false,
+                        "stacked": false,
+                        "unit": "MegaByte"
+                    },
+                    {
+                        "key": "dbsize.db_ram_size",
+                        "displayname": "Licensed DB RAM",
+                        "aggregation": "avg",
+                        "mergeaggregation": "avg",
+                        "color": "#008cdb",
+                        "seriestype": "line",
+                        "rightaxis": false,
+                        "stacked": false,
+                        "unit": "MegaByte"
+                    },
+                    {
+                        "key": "dbsize.db_ramratio",
+                        "displayname": "Recommended vs Licensed RAM Ratio",
+                        "aggregation": "avg",
+                        "mergeaggregation": "avg",
+                        "color": "#C93234",
+                        "seriestype": "line",
+                        "rightaxis": true,
+                        "stacked": false,
+                        "unit": "Ratio"
                     }
                 ]
             }

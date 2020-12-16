@@ -7,6 +7,7 @@ from ruxit.api.base_plugin import RemoteBasePlugin
 from ruxit.api.exceptions import ConfigException
 import logging
 import socket
+import traceback
 from ExasolDatabaseConnector import Database
 
 
@@ -75,12 +76,14 @@ class ExasolPluginRemote(RemoteBasePlugin):
             ### get SQL execution stats
             self.getSQLStats(db,device)
 
-            ### finalize, close connection
-            db.close()
         except:
-            logger.error("Database offline, unreachable or wrong connection string: {}:{}".format(self.ip, self.port))
+            #logger.error("Database offline, unreachable or wrong connection string: {}:{}".format(self.ip, self.port))
+            logger.error(traceback.format_exc())
             device.state_metric(key="state",value="UNAVAILABLE")
             device.report_availability_event(title="Unavailable",description="Database connection unsuccessful")
+        finally:
+            if db is not None:
+                db.close()
 
 
     def reportAbsolute(self,device,metrics):
@@ -137,8 +140,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
                     DimensionMetricPoint(key="node.load5", value=str(result[2]), dimensions={ "Node": str(result[0]) }),
                     DimensionMetricPoint(key="node.load15", value=str(result[3]), dimensions={ "Node": str(result[0]) })
                 }
-        
-            self.reportAbsolute(device,nodestats)
+                self.reportAbsolute(device,nodestats)
 
 
     def getProperties(self,db,device):
@@ -193,10 +195,14 @@ class ExasolPluginRemote(RemoteBasePlugin):
                         ORDER BY MEASURE_TIME DESC limit 1;
                      """
 
-        result = db.execute(sqlCommand)[0]
+        result = db.execute(sqlCommand)
+        if len(result) > 0:
+            result = result[0]
         #logger.info(result)
         usage = {}
+        recommended_ram = 0
         if not None in result:
+
             usage = {
                 MetricPoint(key="dbsize.raw_object_size", value=float(result[0]) * 1024),
                 MetricPoint(key="dbsize.mem_object_size", value=float(result[1]) * 1024),
@@ -208,8 +214,35 @@ class ExasolPluginRemote(RemoteBasePlugin):
                 MetricPoint(key="dbsize.temp_size", value=float(result[7]) * 1024),
                 MetricPoint(key="dbsize.object_count", value=int(result[8]))
             }
+            recommended_ram = value=float(result[4]) * 1024;
 
             self.reportAbsolute(device,usage)
+        
+        # also report the licensed RAM size to perform health/sizing calculation
+        sqlCommand = """select DB_RAM_SIZE
+                        from EXA_SYSTEM_EVENTS
+                        where EVENT_TYPE='STARTUP'
+                        ORDER BY MEASURE_TIME DESC limit 1;
+                     """
+        result = db.execute(sqlCommand)
+        if len(result) > 0:
+            result = result[0]
+        #logger.info(result)
+        usage = {}
+        db_ram = 0
+        if not None in result:
+            db_ram = value=float(result[0]) * 1024
+            ram_ratio = recommended_ram/db_ram
+            usage = {
+                MetricPoint(key="dbsize.db_ram_size", value=float(result[0]) * 1024),
+                MetricPoint(key="dbsize.db_ramratio", value=float(ram_ratio))
+            }
+            # best practice, send out info if this is met
+            if recommended_ram/2 > db_ram:
+                device.report_custom_info_event(description="Actual DB RAM size is lower than half of the recommended RAM size.", title="Check DB RAM Size best practices", properties={'More Info':"https://community.exasol.com/t5/environment-management/monitoring-of-an-exasol-database/ta-p/2634#toc-hId--1644733445"})
+
+            self.reportAbsolute(device,usage)
+
 
     # gather statistics on the execution of SQL statements
     def getSQLStats(self,db,device):
