@@ -52,9 +52,24 @@ class ExasolPluginRemote(RemoteBasePlugin):
         device = group.create_device(device_name, device_name)
         device.add_endpoint(ip=self.ip, port=self.port, dnsNames=[self.host])
         logger.info("Topology: group name={}, device name={}".format(group.name, device.name))
-        try:
-            db = Database(self.connectionstring, self.username, self.password, autocommit=True)
-
+        backoff = 1
+        max_retries = 2**3
+        db = None
+        # simple retry mechanism in case db is unreachable
+        while backoff < max_retries:
+            try:
+                db = Database(self.connectionstring, self.username, self.password, autocommit=True)
+                backoff = max_retries
+            except:
+                #logger.error("Database offline, unreachable or wrong connection string: {}:{}".format(self.ip, self.port))
+                logger.error(traceback.format_exc())
+                time.sleep(backoff)
+                backoff = backoff*2
+        
+        if backoff >= max_retries and db == None:
+            device.state_metric(key="state",value="UNAVAILABLE")
+            device.report_availability_event(title="Unavailable",description="Database connection unsuccessful")
+        elif db is not None:
             ### availability: if we can connect assume the DB is available
             device.state_metric(key="state",value="AVAILABLE")
             ### get properties
@@ -75,15 +90,8 @@ class ExasolPluginRemote(RemoteBasePlugin):
             
             ### get SQL execution stats
             self.getSQLStats(db,device)
-
-        except:
-            #logger.error("Database offline, unreachable or wrong connection string: {}:{}".format(self.ip, self.port))
-            logger.error(traceback.format_exc())
-            device.state_metric(key="state",value="UNAVAILABLE")
-            device.report_availability_event(title="Unavailable",description="Database connection unsuccessful")
-        finally:
-            if db is not None:
-                db.close()
+            
+            db.close()
 
 
     def reportAbsolute(self,device,metrics):
