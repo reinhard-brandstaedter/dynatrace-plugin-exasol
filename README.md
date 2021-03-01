@@ -18,21 +18,21 @@ Please follow the standard pocess to deploy Active Gate remote plugins as descri
 ### Screenshots
 
 After the plugin installation and configuration of your exasol database connection for the plugin you will find the Exasol extension in the Technology overview:
-![availability](./images/technology.png)
+![availability](./img/technology.png)
 
 The plugin will immediatley collect data about the instance:
-![availability](./images/keycharts.png)
+![availability](./img/keycharts.png)
 
 The availability is based on if a successful ODBC connection can be made or not:
-![availability](./images/availability.png)
+![availability](./img/availability.png)
 
 The plugin also gets information about traced DB events. Please note that this might not provide 100% accurate timing information as the plugin is only querying this every minute and is not considering events in the past. Therefore especially the SHUTDOWN or STARTUP events might be missed if the DB is shutdown and not reachable this event might not show up. Other events should all show fine.
-![availability](./images/db_events.png)
+![availability](./img/db_events.png)
 
 Stats about the execution of different SQL statments are collected and split by statement type. The timing information on statements is also gathered from the statistics tables and might be differnt than any timings collected on PurePaths (on the client side).
-![availability](./images/sql_executions.png)
+![availability](./img/sql_executions.png)
 
 These are the cluster level storage sizes of the DB.
-![availability](./images/db_sizes.png)
+![availability](./img/db_sizes.png)
 
 
