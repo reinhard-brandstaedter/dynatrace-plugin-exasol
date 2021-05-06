@@ -8,6 +8,7 @@ from ruxit.api.exceptions import ConfigException
 import logging
 import socket
 import traceback
+import time
 from ExasolDatabaseConnector import Database
 
 
@@ -58,6 +59,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
         # simple retry mechanism in case db is unreachable
         while backoff < max_retries:
             try:
+                logger.info("Connecting to Exasol DB: {}".format(self.connectionstring))
                 db = Database(self.connectionstring, self.username, self.password, autocommit=True)
                 backoff = max_retries
             except:
@@ -69,7 +71,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
         if backoff >= max_retries and db == None:
             device.state_metric(key="state",value="UNAVAILABLE")
             device.report_availability_event(title="Unavailable",description="Database connection unsuccessful")
-        elif db is not None:
+        elif db:
             ### availability: if we can connect assume the DB is available
             device.state_metric(key="state",value="AVAILABLE")
             ### get properties
