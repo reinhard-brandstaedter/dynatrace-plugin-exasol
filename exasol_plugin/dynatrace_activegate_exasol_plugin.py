@@ -135,7 +135,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
 
             result = db.execute(sqlCommand)[0]
             if not None in result:
-                sysstats.update({MetricPoint(key="load{}".format(i), value=float(result[0]))})
+                sysstats.update({MetricPoint(key="load{}".format(i), value=float(result[0].replace(",",".")))})
 
         if len(sysstats) > 0:
             self.reportAbsolute(device,sysstats)
