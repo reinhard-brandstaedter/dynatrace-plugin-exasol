@@ -75,6 +75,10 @@ class ExasolPluginRemote(RemoteBasePlugin):
             device.state_metric(key="state",value="UNAVAILABLE")
             device.report_availability_event(title="Unavailable",description="Database connection unsuccessful: " + errorMsg)
         elif db:
+            ### make sure we are using english notation for numbers
+            sqlCommand = "ALTER SESSION SET NLS_NUMERIC_CHARACTERS='.';"
+            db.execute(sqlCommand)
+
             ### availability: if we can connect assume the DB is available
             device.state_metric(key="state",value="AVAILABLE")
             ### get properties
@@ -115,14 +119,14 @@ class ExasolPluginRemote(RemoteBasePlugin):
         sysstats = {}
         if not None in result:
             sysstats = {
-                MetricPoint(key="load", value=float(result[0].replace(",","."))),
-                MetricPoint(key="cpu", value=float(result[1].replace(",","."))),
-                MetricPoint(key="temp_db_ram", value=float(result[2].replace(",","."))),
-                MetricPoint(key="hdd_read", value=float(result[3].replace(",","."))),
-                MetricPoint(key="hdd_write", value=float(result[4].replace(",","."))),
-                MetricPoint(key="net", value=float(result[5].replace(",","."))),
-                MetricPoint(key="swap", value=float(result[6].replace(",","."))),
-                MetricPoint(key="persistent_db_ram", value=float(result[7].replace(",",".")))
+                MetricPoint(key="load", value=float(result[0])),
+                MetricPoint(key="cpu", value=float(result[1])),
+                MetricPoint(key="temp_db_ram", value=float(result[2])),
+                MetricPoint(key="hdd_read", value=float(result[3])),
+                MetricPoint(key="hdd_write", value=float(result[4])),
+                MetricPoint(key="net", value=float(result[5])),
+                MetricPoint(key="swap", value=float(result[6])),
+                MetricPoint(key="persistent_db_ram", value=float(result[7]))
             }
         
         #additionally calculate load5 and load15
@@ -135,7 +139,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
 
             result = db.execute(sqlCommand)[0]
             if not None in result:
-                sysstats.update({MetricPoint(key="load{}".format(i), value=float(result[0].replace(",",".")))})
+                sysstats.update({MetricPoint(key="load{}".format(i), value=float(result[0]))})
 
         if len(sysstats) > 0:
             self.reportAbsolute(device,sysstats)
@@ -217,17 +221,17 @@ class ExasolPluginRemote(RemoteBasePlugin):
         if not None in result:
 
             usage = {
-                MetricPoint(key="dbsize.raw_object_size", value=float(result[0].replace(",",".")) * 1024),
-                MetricPoint(key="dbsize.mem_object_size", value=float(result[1].replace(",",".")) * 1024),
-                MetricPoint(key="dbsize.auxiliary_size", value=float(result[2].replace(",",".")) * 1024),
-                MetricPoint(key="dbsize.statistics_size", value=float(result[3].replace(",",".")) * 1024),
-                MetricPoint(key="dbsize.recommended_db_ram_size", value=float(result[4].replace(",",".")) * 1024),
-                MetricPoint(key="dbsize.storage_size", value=float(result[5].replace(",",".")) * 1024),
+                MetricPoint(key="dbsize.raw_object_size", value=float(result[0]) * 1024),
+                MetricPoint(key="dbsize.mem_object_size", value=float(result[1]) * 1024),
+                MetricPoint(key="dbsize.auxiliary_size", value=float(result[2]) * 1024),
+                MetricPoint(key="dbsize.statistics_size", value=float(result[3]) * 1024),
+                MetricPoint(key="dbsize.recommended_db_ram_size", value=float(result[4]) * 1024),
+                MetricPoint(key="dbsize.storage_size", value=float(result[5]) * 1024),
                 MetricPoint(key="dbsize.use", value=float(result[6])),
-                MetricPoint(key="dbsize.temp_size", value=float(result[7].replace(",",".")) * 1024),
-                MetricPoint(key="dbsize.object_count", value=int(result[8].replace(",",".")))
+                MetricPoint(key="dbsize.temp_size", value=float(result[7]) * 1024),
+                MetricPoint(key="dbsize.object_count", value=int(result[8]))
             }
-            recommended_ram = value=float(result[4].replace(",",".")) * 1024
+            recommended_ram = value=float(result[4]) * 1024
 
             self.reportAbsolute(device,usage)
         
@@ -244,10 +248,10 @@ class ExasolPluginRemote(RemoteBasePlugin):
         usage = {}
         db_ram = 0
         if not None in result:
-            db_ram = value=float(result[0].replace(",",".")) * 1024
+            db_ram = value=float(result[0]) * 1024
             ram_ratio = recommended_ram/db_ram
             usage = {
-                MetricPoint(key="dbsize.db_ram_size", value=float(result[0].replace(",",".")) * 1024),
+                MetricPoint(key="dbsize.db_ram_size", value=float(result[0]) * 1024),
                 MetricPoint(key="dbsize.db_ramratio", value=float(ram_ratio))
             }
             # best practice, send out info if this is met
