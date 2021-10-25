@@ -1,7 +1,7 @@
 {
     "name": "custom.remote.python.exasol",
     "metricGroup": "tech.exasol",
-    "version": "1.32",
+    "version": "1.33",
     "experimentalMinVersion": "0.10",
     "productiveMinVersion": "0.10",
     "type": "python",

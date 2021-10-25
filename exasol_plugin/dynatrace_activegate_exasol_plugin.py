@@ -76,7 +76,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
             device.report_availability_event(title="Unavailable",description="Database connection unsuccessful: " + errorMsg)
         elif db:
             ### make sure we are using english notation for numbers
-            sqlCommand = "ALTER SESSION SET NLS_NUMERIC_CHARACTERS='.';"
+            sqlCommand = "ALTER SESSION SET NLS_NUMERIC_CHARACTERS='.,';"
             db.execute(sqlCommand)
 
             ### availability: if we can connect assume the DB is available
