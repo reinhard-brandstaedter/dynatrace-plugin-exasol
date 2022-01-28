@@ -1,7 +1,7 @@
 {
     "name": "custom.remote.python.exasol",
     "metricGroup": "tech.exasol",
-    "version": "1.34",
+    "version": "1.36",
     "experimentalMinVersion": "0.10",
     "productiveMinVersion": "0.10",
     "type": "python",
@@ -224,6 +224,7 @@
                     "event_name": "Recommended vs. licensed RAM size ratio warning",
                     "description": "The {metricname} is {alert_condition} the recommended threshold of {threshold}",
                     "threshold": 2.0,
+                    "default_state": "inactive",
                     "alert_condition": "ABOVE",
                     "samples":10,
                     "violating_samples":7,
