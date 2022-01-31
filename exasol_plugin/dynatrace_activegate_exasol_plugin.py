@@ -9,8 +9,7 @@ import logging
 import socket
 import traceback
 import time
-from ExasolDatabaseConnector import Database
-from EXASOL import OperationalError
+import pyexasol
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +61,8 @@ class ExasolPluginRemote(RemoteBasePlugin):
         while backoff < max_retries:
             try:
                 logger.info("Connecting to Exasol DB: {}".format(self.connectionstring))
-                db = Database(self.connectionstring, self.username, self.password, autocommit=True)
+                #db = Database(self.connectionstring, self.username, self.password, autocommit=True)
+                db = pyexasol.connect(dsn=self.connectionstring, user=self.username, password=self.password)
                 backoff = max_retries
             except Exception as error:
                 #logger.error("Database offline, unreachable or wrong connection string: {}:{}".format(self.ip, self.port))
@@ -86,19 +86,19 @@ class ExasolPluginRemote(RemoteBasePlugin):
 
             ### get system stats
             self.getSysStats(db,device)
-            self.getNodeStats(db,device)
+            #self.getNodeStats(db,device)
 
             ### get usage stats - users and queries
-            self.getUsage(db,device)
+            #self.getUsage(db,device)
 
             ### get dbsizes
-            self.getDBSizes(db,device)
+            #self.getDBSizes(db,device)
 
             ### get recent events
-            self.getRecentEvents(db,device)
+            #self.getRecentEvents(db,device)
             
             ### get SQL execution stats
-            self.getSQLStats(db,device)
+            #self.getSQLStats(db,device)
             
             db.close()
 
@@ -114,7 +114,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
                         ORDER BY MEASURE_TIME DESC limit 1;
                      """.format(self.interval*2)
 
-        result = db.execute(sqlCommand)[0]
+        result = db.execute(sqlCommand).fetchone()
         #logger.info(result)
         sysstats = {}
         if not None in result:
@@ -166,7 +166,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
                         where EVENT_TYPE='STARTUP'
                         ORDER BY MEASURE_TIME DESC limit 1;
                      """
-        result = db.execute(sqlCommand)[0]
+        result = db.execute(sqlCommand).fetchone()
         logger.info(result)
         properties = {}
         if not None in result:
