@@ -1,7 +1,7 @@
 {
     "name": "custom.remote.python.exasol",
     "metricGroup": "tech.exasol",
-    "version": "2.13",
+    "version": "2.16",
     "experimentalMinVersion": "0.10",
     "productiveMinVersion": "0.10",
     "type": "python",
@@ -159,6 +159,48 @@
                 "unit": "Count",
                 "displayname": "Concurrent queries"
             }
+        },
+        {
+            "entity": "CUSTOM_DEVICE",
+            "timeseries": {
+                "key": "sessions.idle",
+                "unit": "Count",
+                "displayname": "Sessions idle"
+            },
+            "alert_settings": [
+                {
+                    "alert_id": "idle_sessions",
+                    "event_type": "PERFORMANCE_EVENT",
+                    "event_name": "High number of idle sessions",
+                    "description": "The number of {metricname} is {alert_condition} the threshold of {threshold}",
+                    "threshold": 98.0,
+                    "alert_condition": "ABOVE",
+                    "samples":10,
+                    "violating_samples":7,
+                    "dealerting_samples":7
+                }
+            ]
+        },
+        {
+            "entity": "CUSTOM_DEVICE",
+            "timeseries": {
+                "key": "backup.interval",
+                "unit": "Count",
+                "displayname": "Time between backups"
+            },
+            "alert_settings": [
+                {
+                    "alert_id": "backup_interval",
+                    "event_type": "PERFORMANCE_EVENT",
+                    "event_name": "Time between backups is too high",
+                    "description": "The {metricname} is {alert_condition} the threshold of {threshold}",
+                    "threshold": 30.0,
+                    "alert_condition": "ABOVE",
+                    "samples":10,
+                    "violating_samples":7,
+                    "dealerting_samples":7
+                }
+            ]
         },
         {
             "entity": "CUSTOM_DEVICE",
@@ -948,6 +990,25 @@
                         "stacked": false,
                         "unit": "Count",
                         "metricexplanation": "Number of connected users"
+                    }
+                ]
+            },
+            {
+                "group": "Users and Queries",
+                "title": "Idle Sessions",
+                "link": "Users and Queries",
+                "series": [
+                    {
+                        "key": "sessions.idle",
+                        "displayname": "Idle Sessions",
+                        "aggregation": "avg",
+                        "mergeaggregation": "avg",
+                        "color": "#008cdb",
+                        "seriestype": "bar",
+                        "rightaxis": true,
+                        "stacked": false,
+                        "unit": "Count",
+                        "metricexplanation": "Number of idle sessions"
                     }
                 ]
             },
