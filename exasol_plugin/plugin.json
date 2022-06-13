@@ -1,7 +1,7 @@
 {
     "name": "custom.remote.python.exasol",
     "metricGroup": "tech.exasol",
-    "version": "1.38",
+    "version": "2.16",
     "experimentalMinVersion": "0.10",
     "productiveMinVersion": "0.10",
     "type": "python",
@@ -13,9 +13,7 @@
     "source": {
         "package": "dynatrace_activegate_exasol_plugin",
         "className": "ExasolPluginRemote",
-        "install_requires": [
-            "pyodbc", "ExasolDatabaseConnector>=0.1.7"
-        ],
+        "install_requires": ["pyexasol","websocket-client"],
         "activation": "Remote"
     },
     "metrics": [
@@ -266,6 +264,7 @@
                     "event_name": "Recommended vs. licensed RAM size ratio warning",
                     "description": "The {metricname} is {alert_condition} the recommended threshold of {threshold}",
                     "threshold": 2.0,
+                    "default_state": "inactive",
                     "alert_condition": "ABOVE",
                     "samples":10,
                     "violating_samples":7,
@@ -991,6 +990,25 @@
                         "stacked": false,
                         "unit": "Count",
                         "metricexplanation": "Number of connected users"
+                    }
+                ]
+            },
+            {
+                "group": "Users and Queries",
+                "title": "Idle Sessions",
+                "link": "Users and Queries",
+                "series": [
+                    {
+                        "key": "sessions.idle",
+                        "displayname": "Idle Sessions",
+                        "aggregation": "avg",
+                        "mergeaggregation": "avg",
+                        "color": "#008cdb",
+                        "seriestype": "bar",
+                        "rightaxis": true,
+                        "stacked": false,
+                        "unit": "Count",
+                        "metricexplanation": "Number of idle sessions"
                     }
                 ]
             },
