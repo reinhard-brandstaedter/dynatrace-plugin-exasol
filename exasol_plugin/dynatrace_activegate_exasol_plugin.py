@@ -10,6 +10,7 @@ import socket
 import traceback
 import time
 import pyexasol
+import ssl
 
 
 logger = logging.getLogger(__name__)
@@ -62,7 +63,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
             try:
                 logger.info("Connecting to Exasol DB: {}".format(self.connectionstring))
                 #db = Database(self.connectionstring, self.username, self.password, autocommit=True)
-                db = pyexasol.connect(dsn=self.connectionstring, user=self.username, password=self.password)
+                db = pyexasol.connect(dsn=self.connectionstring, user=self.username, password=self.password, encryption=True, fetch_dict=True, websocket_sslopt={'cert_reqs': ssl.CERT_NONE})
                 backoff = max_retries
             except Exception as error:
                 #logger.error("Database offline, unreachable or wrong connection string: {}:{}".format(self.ip, self.port))
@@ -86,19 +87,19 @@ class ExasolPluginRemote(RemoteBasePlugin):
 
             ### get system stats
             self.getSysStats(db,device)
-            #self.getNodeStats(db,device)
+            self.getNodeStats(db,device)
 
             ### get usage stats - users and queries
-            #self.getUsage(db,device)
+            self.getUsage(db,device)
 
             ### get dbsizes
-            #self.getDBSizes(db,device)
+            self.getDBSizes(db,device)
 
             ### get recent events
-            #self.getRecentEvents(db,device)
+            self.getRecentEvents(db,device)
             
             ### get SQL execution stats
-            #self.getSQLStats(db,device)
+            self.getSQLStats(db,device)
             
             db.close()
 
@@ -114,32 +115,33 @@ class ExasolPluginRemote(RemoteBasePlugin):
                         ORDER BY MEASURE_TIME DESC limit 1;
                      """.format(self.interval*2)
 
-        result = db.execute(sqlCommand).fetchone()
-        #logger.info(result)
+        resultset = db.execute(sqlCommand)
         sysstats = {}
-        if not None in result:
+        for result in resultset:
+            logger.info(result)
             sysstats = {
-                MetricPoint(key="load", value=float(result[0])),
-                MetricPoint(key="cpu", value=float(result[1])),
-                MetricPoint(key="temp_db_ram", value=float(result[2])),
-                MetricPoint(key="hdd_read", value=float(result[3])),
-                MetricPoint(key="hdd_write", value=float(result[4])),
-                MetricPoint(key="net", value=float(result[5])),
-                MetricPoint(key="swap", value=float(result[6])),
-                MetricPoint(key="persistent_db_ram", value=float(result[7]))
+                MetricPoint(key="load", value=float(result["LOAD"])),
+                MetricPoint(key="cpu", value=float(result["CPU"])),
+                MetricPoint(key="temp_db_ram", value=float(result["TEMP_DB_RAM"])),
+                MetricPoint(key="hdd_read", value=float(result["HDD_READ"])),
+                MetricPoint(key="hdd_write", value=float(result["HDD_WRITE"])),
+                MetricPoint(key="net", value=float(result["NET"])),
+                MetricPoint(key="swap", value=float(result["SWAP"])),
+                MetricPoint(key="persistent_db_ram", value=float(result["PERSISTENT_DB_RAM"]))
             }
         
         #additionally calculate load5 and load15
         for i in [5,15]:
-            sqlCommand = """select avg(LOAD)
+            sqlCommand = """select avg(LOAD) as LOAD
                             from EXA_STATISTICS.EXA_MONITOR_LAST_DAY
                             where MEASURE_TIME between ADD_SECONDS(NOW(), -{}) and NOW()
                             ORDER BY MEASURE_TIME DESC limit 1;
                          """.format(self.interval*i)
 
-            result = db.execute(sqlCommand)[0]
-            if not None in result:
-                sysstats.update({MetricPoint(key="load{}".format(i), value=float(result[0]))})
+            resultset = db.execute(sqlCommand)
+            for result in resultset:
+                logger.info(result)
+                sysstats.update({MetricPoint(key="load{}".format(i), value=float(result["LOAD"]))})
 
         if len(sysstats) > 0:
             self.reportAbsolute(device,sysstats)
@@ -149,15 +151,17 @@ class ExasolPluginRemote(RemoteBasePlugin):
                      
         resultset = db.execute(sqlCommand)
         nodestats = {}
-        if len(resultset) > 0:
-            #logger.info(resultset)
-            for result in resultset:
+        for result in resultset:
+            logger.info(result)
+            try:
                 nodestats = {
-                    DimensionMetricPoint(key="node.load", value=str(result[1]), dimensions={ "Node": str(result[0]) }),
-                    DimensionMetricPoint(key="node.load5", value=str(result[2]), dimensions={ "Node": str(result[0]) }),
-                    DimensionMetricPoint(key="node.load15", value=str(result[3]), dimensions={ "Node": str(result[0]) })
+                    DimensionMetricPoint(key="node.load", value=str(result["LAST_1MIN"]), dimensions={ "Node": str(result["IPROC"]) }),
+                    DimensionMetricPoint(key="node.load5", value=str(result["LAST_5MIN"]), dimensions={ "Node": str(result["IPROC"]) }),
+                    DimensionMetricPoint(key="node.load15", value=str(result["LAST_15MIN"]), dimensions={ "Node": str(result["IPROC"]) })
                 }
                 self.reportAbsolute(device,nodestats)
+            except:
+                logger.warning("Key Error!")
 
 
     def getProperties(self,db,device):
@@ -166,14 +170,14 @@ class ExasolPluginRemote(RemoteBasePlugin):
                         where EVENT_TYPE='STARTUP'
                         ORDER BY MEASURE_TIME DESC limit 1;
                      """
-        result = db.execute(sqlCommand).fetchone()
-        logger.info(result)
+        resultset = db.execute(sqlCommand)
         properties = {}
-        if not None in result:
-            device.report_property("Version", str(result[0]))
-            device.report_property("Cluster Nodes", str(result[1]))
-            device.report_property("Licensed RAM Size", "{} GB".format(result[2]))
-            device.report_property("Cluster Name", str(result[3]))
+        for result in resultset:
+            logger.info(result)
+            device.report_property("Version", str(result["DBMS_VERSION"]))
+            device.report_property("Cluster Nodes", str(result["NODES"]))
+            device.report_property("Licensed RAM Size", "{} GB".format(result["DB_RAM_SIZE"]))
+            device.report_property("Cluster Name", str(result["CLUSTER_NAME"]))
 
 
     def getRecentEvents(self,db,device):
@@ -185,7 +189,8 @@ class ExasolPluginRemote(RemoteBasePlugin):
         resultset = db.execute(sqlCommand)
         events = {}
         for result in resultset:
-            device.report_custom_info_event(description=str(result[0]), title=str(result[0]), properties={'Timestamp':str(result[1])})
+            logger.info(result)
+            device.report_custom_info_event(description=str(result[0]), title=str(result["EVENT_TYPE"]), properties={'Timestamp':str(result["MEASURE_TIME"])})
 
     def getUsage(self,db,device):
         sqlCommand = """select USERS, QUERIES
@@ -194,13 +199,13 @@ class ExasolPluginRemote(RemoteBasePlugin):
                         ORDER BY MEASURE_TIME DESC limit 1;
                      """.format(self.interval*2)
 
-        result = db.execute(sqlCommand)[0]
-        #logger.info(result)
+        resultset = db.execute(sqlCommand)
         usage = {}
-        if not None in result:
+        for result in resultset:
+            logger.info(result)
             usage = {
-                MetricPoint(key="users", value=result[0]),
-                MetricPoint(key="queries", value=result[1])
+                MetricPoint(key="users", value=result["USERS"]),
+                MetricPoint(key="queries", value=result["QUERIES"])
             }
             self.reportAbsolute(device,usage)
 
@@ -212,26 +217,23 @@ class ExasolPluginRemote(RemoteBasePlugin):
                         ORDER BY MEASURE_TIME DESC limit 1;
                      """
 
-        result = db.execute(sqlCommand)
-        if len(result) > 0:
-            result = result[0]
-        #logger.info(result)
+        resultset = db.execute(sqlCommand)
         usage = {}
         recommended_ram = 0
-        if not None in result:
-
+        for result in resultset:
+            logger.info(result)
             usage = {
-                MetricPoint(key="dbsize.raw_object_size", value=float(result[0]) * 1024),
-                MetricPoint(key="dbsize.mem_object_size", value=float(result[1]) * 1024),
-                MetricPoint(key="dbsize.auxiliary_size", value=float(result[2]) * 1024),
-                MetricPoint(key="dbsize.statistics_size", value=float(result[3]) * 1024),
-                MetricPoint(key="dbsize.recommended_db_ram_size", value=float(result[4]) * 1024),
-                MetricPoint(key="dbsize.storage_size", value=float(result[5]) * 1024),
-                MetricPoint(key="dbsize.use", value=float(result[6])),
-                MetricPoint(key="dbsize.temp_size", value=float(result[7]) * 1024),
-                MetricPoint(key="dbsize.object_count", value=int(result[8]))
+                MetricPoint(key="dbsize.raw_object_size", value=float(result["RAW_OBJECT_SIZE"]) * 1024),
+                MetricPoint(key="dbsize.mem_object_size", value=float(result["MEM_OBJECT_SIZE"]) * 1024),
+                MetricPoint(key="dbsize.auxiliary_size", value=float(result["AUXILIARY_SIZE"]) * 1024),
+                MetricPoint(key="dbsize.statistics_size", value=float(result["STATISTICS_SIZE"]) * 1024),
+                MetricPoint(key="dbsize.recommended_db_ram_size", value=float(result["RECOMMENDED_DB_RAM_SIZE"]) * 1024),
+                MetricPoint(key="dbsize.storage_size", value=float(result["STORAGE_SIZE"]) * 1024),
+                MetricPoint(key="dbsize.use", value=float(result["USE"])),
+                MetricPoint(key="dbsize.temp_size", value=float(result["TEMP_SIZE"]) * 1024),
+                MetricPoint(key="dbsize.object_count", value=int(result["OBJECT_COUNT"]))
             }
-            recommended_ram = value=float(result[4]) * 1024
+            recommended_ram = value=float(result["RECOMMENDED_DB_RAM_SIZE"]) * 1024
 
             self.reportAbsolute(device,usage)
         
@@ -241,17 +243,15 @@ class ExasolPluginRemote(RemoteBasePlugin):
                         where EVENT_TYPE='STARTUP'
                         ORDER BY MEASURE_TIME DESC limit 1;
                      """
-        result = db.execute(sqlCommand)
-        if len(result) > 0:
-            result = result[0]
-        #logger.info(result)
+        resultset = db.execute(sqlCommand)
         usage = {}
         db_ram = 0
-        if not None in result:
-            db_ram = value=float(result[0]) * 1024
+        for result in resultset:
+            logger.info(result)
+            db_ram = value=float(result["DB_RAM_SIZE"]) * 1024
             ram_ratio = recommended_ram/db_ram
             usage = {
-                MetricPoint(key="dbsize.db_ram_size", value=float(result[0]) * 1024),
+                MetricPoint(key="dbsize.db_ram_size", value=float(result["DB_RAM_SIZE"]) * 1024),
                 MetricPoint(key="dbsize.db_ramratio", value=float(ram_ratio))
             }
             # best practice, send out info if this is met
@@ -264,10 +264,10 @@ class ExasolPluginRemote(RemoteBasePlugin):
     # gather statistics on the execution of SQL statements
     def getSQLStats(self,db,device):
         # failed statements
-        sqlCommand = """select count(EXECUTION_MODE),
-                               median(DURATION),
-                               max(DURATION),
-                               percentile_cont(0.9) within group (order by DURATION),
+        sqlCommand = """select count(EXECUTION_MODE) as count,
+                               median(DURATION) as median,
+                               max(DURATION) as max,
+                               percentile_cont(0.9) within group (order by DURATION) as pct90,
                                COMMAND_NAME
                         from EXA_SQL_LAST_DAY
                         where SUCCESS=FALSE and START_TIME between ADD_SECONDS(NOW(), -{}) and ADD_SECONDS(NOW(), -{})
@@ -277,22 +277,21 @@ class ExasolPluginRemote(RemoteBasePlugin):
 
         resultset = db.execute(sqlCommand)
         successful = {}
-        if len(resultset) > 0:
-            #logger.info(resultset)
-            for result in resultset:
-                successful = {
-                    DimensionMetricPoint(key="db.sql_failed", value=str(result[0]), dimensions={ "CommandName": str(result[4]) }),
-                    DimensionMetricPoint(key="db.sql_failed.duration_median", value=str(result[1]), dimensions={ "CommandName": str(result[4]) }),
-                    DimensionMetricPoint(key="db.sql_failed.duration_max", value=str(result[2]), dimensions={ "CommandName": str(result[4]) }),
-                    DimensionMetricPoint(key="db.sql_failed.duration_pct90", value=str(result[3]), dimensions={ "CommandName": str(result[4]) })
-                }
-                self.reportAbsolute(device,successful)
+        for result in resultset:
+            logger.info(result)
+            successful = {
+                DimensionMetricPoint(key="db.sql_failed", value=str(result["COUNT"]), dimensions={ "CommandName": str(result["COMMAND_NAME"]) }),
+                DimensionMetricPoint(key="db.sql_failed.duration_median", value=str(result["MEDIAN"]), dimensions={ "CommandName": str(result["COMMAND_NAME"]) }),
+                DimensionMetricPoint(key="db.sql_failed.duration_max", value=str(result["MAX"]), dimensions={ "CommandName": str(result["COMMAND_NAME"]) }),
+                DimensionMetricPoint(key="db.sql_failed.duration_pct90", value=str(result["PCT90"]), dimensions={ "CommandName": str(result["COMMAND_NAME"]) })
+            }
+            self.reportAbsolute(device,successful)
 
         # successful statements
-        sqlCommand = """select count(EXECUTION_MODE),
-                               median(DURATION),
-                               max(DURATION),
-                               percentile_cont(0.9) within group (order by DURATION),
+        sqlCommand = """select count(EXECUTION_MODE) as count,
+                               median(DURATION) as median,
+                               max(DURATION) as max,
+                               percentile_cont(0.9) within group (order by DURATION) as pct90,
                                COMMAND_NAME
                         from EXA_SQL_LAST_DAY
                         where SUCCESS=TRUE and START_TIME between ADD_SECONDS(NOW(), -{}) and ADD_SECONDS(NOW(), -{})
@@ -302,13 +301,12 @@ class ExasolPluginRemote(RemoteBasePlugin):
 
         resultset = db.execute(sqlCommand)
         failed = {}
-        if len(resultset) > 0:
-            #logger.info(resultset)
-            for result in resultset:
-                failed = {
-                    DimensionMetricPoint(key="db.sql_successful", value=str(result[0]), dimensions={ "CommandName": str(result[4]) }),
-                    DimensionMetricPoint(key="db.sql_successful.duration_median", value=str(result[1]), dimensions={ "CommandName": str(result[4]) }),
-                    DimensionMetricPoint(key="db.sql_successful.duration_max", value=str(result[2]), dimensions={ "CommandName": str(result[4]) }),
-                    DimensionMetricPoint(key="db.sql_successful.duration_pct90", value=str(result[3]), dimensions={ "CommandName": str(result[4]) })
-                }
-                self.reportAbsolute(device,failed)
+        for result in resultset:
+            logger.info(result)
+            failed = {
+                DimensionMetricPoint(key="db.sql_successful", value=str(result["COUNT"]), dimensions={ "CommandName": str(result["COMMAND_NAME"]) }),
+                DimensionMetricPoint(key="db.sql_successful.duration_median", value=str(result["MEDIAN"]), dimensions={ "CommandName": str(result["COMMAND_NAME"]) }),
+                DimensionMetricPoint(key="db.sql_successful.duration_max", value=str(result["MAX"]), dimensions={ "CommandName": str(result["COMMAND_NAME"]) }),
+                DimensionMetricPoint(key="db.sql_successful.duration_pct90", value=str(result["PCT90"]), dimensions={ "CommandName": str(result["COMMAND_NAME"]) })
+            }
+            self.reportAbsolute(device,failed)

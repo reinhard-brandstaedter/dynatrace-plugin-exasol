@@ -1,7 +1,7 @@
 {
     "name": "custom.remote.python.exasol",
     "metricGroup": "tech.exasol",
-    "version": "1.37",
+    "version": "2.13",
     "experimentalMinVersion": "0.10",
     "productiveMinVersion": "0.10",
     "type": "python",
@@ -13,7 +13,7 @@
     "source": {
         "package": "dynatrace_activegate_exasol_plugin",
         "className": "ExasolPluginRemote",
-        "install_requires": ["pyexasol","websocket-client>=1.0.1"],
+        "install_requires": ["pyexasol","websocket-client"],
         "activation": "Remote"
     },
     "metrics": [
