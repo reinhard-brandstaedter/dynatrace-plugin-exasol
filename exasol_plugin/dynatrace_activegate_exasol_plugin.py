@@ -224,6 +224,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
             logger.info(result)
             sessions = {
                 MetricPoint(key="sessions.idle", value=result["COUNT"])
+
             }
             self.reportAbsolute(device,sessions)
 
