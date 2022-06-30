@@ -1,0 +1,15 @@
+Metadata-Version: 2.1
+Name: dynatrace-activegate-exasol-plugin
+Version: 2.20
+Summary: UNKNOWN
+Home-page: UNKNOWN
+Author: UNKNOWN
+Author-email: UNKNOWN
+License: UNKNOWN
+Platform: UNKNOWN
+Requires-Dist: pyexasol
+Requires-Dist: websocket-client
+
+UNKNOWN
+
+
