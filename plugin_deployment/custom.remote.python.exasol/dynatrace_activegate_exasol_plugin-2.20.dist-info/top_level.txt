@@ -1,1 +1,0 @@
-dynatrace_activegate_exasol_plugin

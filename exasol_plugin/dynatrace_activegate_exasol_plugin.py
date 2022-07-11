@@ -243,7 +243,7 @@ class ExasolPluginRemote(RemoteBasePlugin):
         interval = {}
         for result in resultset:
             logger.info(result)
-            sessions = {
+            interval = {
                 MetricPoint(key="backup.interval", value=result["BACKUP_INTERVAL"])
             }
             self.reportAbsolute(device,interval)
